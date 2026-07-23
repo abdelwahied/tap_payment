@@ -53,7 +53,7 @@ final class SettingsForm extends ConfigFormBase {
   public function __construct(
     ConfigFactoryInterface $config_factory,
     TypedConfigManagerInterface $typed_config_manager,
-    private readonly TapPaymentSettings $settings,
+    protected TapPaymentSettings $settings,
   ) {
     parent::__construct($config_factory, $typed_config_manager);
   }

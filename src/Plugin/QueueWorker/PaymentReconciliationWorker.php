@@ -64,9 +64,9 @@ final class PaymentReconciliationWorker extends QueueWorkerBase implements Conta
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    private readonly TapPaymentInterface $payments,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly LoggerChannelInterface $logger,
+    protected TapPaymentInterface $payments,
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected LoggerChannelInterface $logger,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }

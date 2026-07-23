@@ -8,6 +8,19 @@ All notable changes to this module are documented here. The format follows
 
 Nothing yet.
 
+## [1.0.1] — 2026-07-23
+
+### Fixed
+
+- Serialization safety: injected services on the settings form, transaction
+  list builder and reconciliation queue worker are now `protected` and no
+  longer `readonly`, matching the `DependencySerializationTrait` contract on
+  PHP 8.3.
+- Documented that `TapPaymentInterface::verifyPayment()` can throw
+  `ConfigurationException`, matching its real behaviour.
+
+No functional or public API changes.
+
 ## 1.0.0
 
 Initial release.
