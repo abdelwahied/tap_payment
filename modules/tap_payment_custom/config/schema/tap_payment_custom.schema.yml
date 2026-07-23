@@ -1,0 +1,16 @@
+tap_payment_custom.settings:
+  type: config_object
+  label: 'Standalone Tap payment form settings'
+  mapping:
+    amount:
+      type: string
+      label: 'Amount'
+    currency:
+      type: string
+      label: 'Currency'
+    description:
+      type: string
+      label: 'Description'
+    source_id:
+      type: string
+      label: 'Payment source'

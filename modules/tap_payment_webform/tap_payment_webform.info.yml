@@ -1,0 +1,9 @@
+name: 'Tap Payment: Webform'
+type: module
+description: 'Takes a Tap payment when a webform is submitted, through the tap_payment public API.'
+package: 'Payment'
+core_version_requirement: ^10.3 || ^11
+php: '8.3'
+dependencies:
+  - tap_payment:tap_payment
+  - webform:webform

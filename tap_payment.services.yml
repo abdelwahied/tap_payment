@@ -1,0 +1,200 @@
+parameters:
+  # Protocol facts and operational limits, not site settings. They live here
+  # rather than on the administration form because Tap does not ask a merchant
+  # to choose them and a site owner has no basis on which to. A site that does
+  # need to tune one overrides the parameter from its own
+  # sites/default/services.yml, deliberately, without patching the module.
+
+  # Tap runs test and live on the same host; the environment is chosen by which
+  # secret key is sent, never by the URL.
+  tap_payment.api_base_url: 'https://api.tap.company/v2/'
+
+  # Which adapter shapes requests and reads responses. Changing this only makes
+  # sense together with an adapter that implements the version.
+  tap_payment.api_version: 'v2'
+
+  # Seconds. A payment request is in front of a waiting customer, so the ceiling
+  # is short enough that a hung connection does not become a hung checkout.
+  tap_payment.http_timeout: 30
+  tap_payment.http_connect_timeout: 10
+
+  # Retries apply to throttling, server faults and dropped connections only —
+  # never to a rejected request. Two retries at 250ms and 500ms add at most
+  # three quarters of a second to a failing call.
+  tap_payment.http_max_retries: 2
+  tap_payment.http_retry_base_delay_ms: 250
+
+  # Decimal places per currency, used both to render an amount for Tap and to
+  # reproduce the webhook signature. These are the values Tap documents on its
+  # webhook page; anything unlisted falls back to the ISO 4217 default of two.
+  # A currency Tap enables for an account later can be added here without a
+  # code change.
+  tap_payment.currency_decimals:
+    BHD: 3
+    JOD: 3
+    KWD: 3
+    OMR: 3
+    TND: 3
+    AED: 2
+    EGP: 2
+    EUR: 2
+    GBP: 2
+    QAR: 2
+    SAR: 2
+    USD: 2
+
+  # Seconds a per-charge lock is held while an outcome is applied.
+  tap_payment.lock_timeout: 30
+
+  # How far in the past a charge may have been created for its webhook to be
+  # accepted. Deliberately generous: an asynchronous method such as Fawry lets
+  # a customer pay in a shop days after the charge was created, and rejecting
+  # that would reject real money. Replay is prevented by the state machine, not
+  # by this bound — see \Drupal\tap_payment\Webhook\WebhookProcessor.
+  tap_payment.webhook_freshness_window: 2592000
+
+  # Failed webhook verifications tolerated from one client per window. Genuine
+  # Tap deliveries always verify, so this only ever bites a forger.
+  tap_payment.webhook_flood_limit: 20
+  tap_payment.webhook_flood_window: 3600
+
+  # Return-route hits tolerated per client per window. Each one costs an
+  # outbound API call, so the endpoint is bounded even though a real payer only
+  # ever uses it once or twice.
+  tap_payment.return_flood_limit: 50
+  tap_payment.return_flood_window: 3600
+
+  # Reconciliation. A payment is chased once it has been quiet for longer than
+  # Tap's own maximum transaction expiry (60 minutes), and is left alone once it
+  # is older than the window — re-reading every abandoned checkout since launch
+  # on every cron run is not reconciliation, it is a self-inflicted rate limit.
+  tap_payment.reconciliation_grace: 3900
+  tap_payment.reconciliation_max_age: 604800
+  tap_payment.reconciliation_batch_size: 50
+
+services:
+  # --- Infrastructure -------------------------------------------------------
+
+  logger.channel.tap_payment:
+    parent: logger.channel_base
+    arguments: ['tap_payment']
+
+  Drupal\tap_payment\Logger\LogSanitizer: ~
+  tap_payment.log_sanitizer: '@Drupal\tap_payment\Logger\LogSanitizer'
+
+  Drupal\tap_payment\Utility\CurrencyDecimals:
+    arguments:
+      - '%tap_payment.currency_decimals%'
+  tap_payment.currency_decimals: '@Drupal\tap_payment\Utility\CurrencyDecimals'
+
+  Drupal\tap_payment\Service\TapPaymentSettings:
+    arguments: ['@config.factory']
+  tap_payment.settings: '@Drupal\tap_payment\Service\TapPaymentSettings'
+
+  Drupal\tap_payment\Service\InternalUrlValidator:
+    arguments: ['@request_stack']
+  tap_payment.internal_url_validator: '@Drupal\tap_payment\Service\InternalUrlValidator'
+
+  Drupal\tap_payment\State\PaymentStateMachine: ~
+  tap_payment.state_machine: '@Drupal\tap_payment\State\PaymentStateMachine'
+
+  # --- API layer ------------------------------------------------------------
+  #
+  # The client speaks HTTP and knows nothing about payments; the adapter knows
+  # the shape of one API version and nothing about transport. Adding support for
+  # a future Tap API version is one class tagged tap_payment_api_adapter plus a
+  # change to the tap_payment.api_version parameter — no other file moves.
+
+  Drupal\tap_payment\Api\TapApiClient:
+    arguments:
+      - '@http_client'
+      - '@tap_payment.settings'
+      - '@logger.channel.tap_payment'
+      - '@tap_payment.log_sanitizer'
+      - '%tap_payment.api_base_url%'
+      - '%tap_payment.http_timeout%'
+      - '%tap_payment.http_connect_timeout%'
+      - '%tap_payment.http_max_retries%'
+      - '%tap_payment.http_retry_base_delay_ms%'
+
+  Drupal\tap_payment\Api\TapApiClientInterface: '@Drupal\tap_payment\Api\TapApiClient'
+  tap_payment.api_client: '@Drupal\tap_payment\Api\TapApiClientInterface'
+
+  Drupal\tap_payment\Api\Adapter\TapV2Adapter:
+    arguments:
+      - '@tap_payment.currency_decimals'
+    tags:
+      - { name: tap_payment_api_adapter }
+
+  Drupal\tap_payment\Api\Adapter\AdapterRegistry:
+    arguments:
+      - !tagged_iterator tap_payment_api_adapter
+      - '%tap_payment.api_version%'
+  tap_payment.adapter_registry: '@Drupal\tap_payment\Api\Adapter\AdapterRegistry'
+
+  # --- Payment gateway plugins ----------------------------------------------
+
+  plugin.manager.tap_payment_gateway:
+    class: Drupal\tap_payment\PaymentGatewayManager
+    parent: default_plugin_manager
+
+  # --- Application services -------------------------------------------------
+
+  Drupal\tap_payment\Service\TapPaymentService:
+    arguments:
+      - '@entity_type.manager'
+      - '@plugin.manager.tap_payment_gateway'
+      - '@tap_payment.state_machine'
+      - '@tap_payment.internal_url_validator'
+      - '@url_generator'
+      - '@uuid'
+      - '@lock'
+      - '@event_dispatcher'
+      - '@logger.channel.tap_payment'
+      - '@tap_payment.currency_decimals'
+      - '%tap_payment.lock_timeout%'
+
+  # The interface is the name to inject: a site may swap the implementation
+  # without every consumer changing what it asks the container for.
+  Drupal\tap_payment\TapPaymentInterface: '@Drupal\tap_payment\Service\TapPaymentService'
+  tap_payment.payment: '@Drupal\tap_payment\TapPaymentInterface'
+  tap_payment.payment_service: '@Drupal\tap_payment\Service\TapPaymentService'
+
+  Drupal\tap_payment\Webhook\WebhookProcessor:
+    arguments:
+      - '@plugin.manager.tap_payment_gateway'
+      - '@tap_payment.payment_service'
+      - '@event_dispatcher'
+      - '@logger.channel.tap_payment'
+      - '@datetime.time'
+      - 'tap'
+      - '%tap_payment.webhook_freshness_window%'
+  tap_payment.webhook_processor: '@Drupal\tap_payment\Webhook\WebhookProcessor'
+
+  Drupal\tap_payment\Service\StatusReport:
+    arguments:
+      - '@tap_payment.settings'
+      - '@tap_payment.adapter_registry'
+      - '@entity_type.manager'
+  tap_payment.status_report: '@Drupal\tap_payment\Service\StatusReport'
+
+  # The OOP requirements hook for Drupal 11.3 and later. The procedural
+  # hook_requirements() in the .install file remains for Drupal 10.3 and is
+  # marked #[LegacyRequirementsHook] so the two never both run.
+  Drupal\tap_payment\Hook\TapPaymentRequirements:
+    autowire: false
+    arguments:
+      - '@tap_payment.status_report'
+    tags:
+      - { name: hooks }
+
+  Drupal\tap_payment\Service\PaymentReconciler:
+    arguments:
+      - '@entity_type.manager'
+      - '@queue'
+      - '@datetime.time'
+      - '@logger.channel.tap_payment'
+      - '%tap_payment.reconciliation_grace%'
+      - '%tap_payment.reconciliation_max_age%'
+      - '%tap_payment.reconciliation_batch_size%'
+  tap_payment.reconciler: '@Drupal\tap_payment\Service\PaymentReconciler'

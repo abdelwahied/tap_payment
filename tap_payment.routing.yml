@@ -1,0 +1,56 @@
+tap_payment.settings:
+  path: '/admin/config/services/tap-payment'
+  defaults:
+    _form: '\Drupal\tap_payment\Form\SettingsForm'
+    _title: 'Tap Payment'
+  requirements:
+    _permission: 'administer tap payment'
+
+tap_payment.transactions:
+  path: '/admin/config/services/tap-payment/transactions'
+  defaults:
+    _entity_list: 'tap_payment_transaction'
+    _title: 'Tap payment transactions'
+  requirements:
+    _permission: 'view tap payment transactions+administer tap payment'
+
+# Tap's server-to-server notification. Open by necessity: Tap posts from its own
+# infrastructure with no session and no token, so access cannot be a permission.
+# The authentication is the signature over the payload, checked before anything
+# in the body is believed — see \Drupal\tap_payment\Webhook\WebhookProcessor.
+# _csrf_token is deliberately absent for the same reason, and would be
+# security theatre here: a token this endpoint could check is one Tap could not
+# send.
+tap_payment.webhook:
+  path: '/tap-payment/webhook'
+  defaults:
+    _controller: '\Drupal\tap_payment\Controller\WebhookController::handle'
+  methods: [POST]
+  requirements:
+    # Open by design: Tap posts from its own servers with no session and no
+    # token, so there is no permission or role that could be required here.
+    # Authentication is the HMAC signature over the payload, checked before a
+    # single field of the body is believed.
+    _access: 'TRUE'
+  options:
+    no_cache: TRUE
+    _maintenance_access: TRUE
+
+# Where Tap sends the payer back. Anonymous by necessity — a customer may have
+# no session by the time they return — and the transaction is addressed by UUID
+# so the path cannot be walked. Nothing in the query string is trusted: the
+# controller re-reads the charge from Tap before deciding anything.
+tap_payment.return:
+  path: '/tap-payment/return/{uuid}'
+  defaults:
+    _controller: '\Drupal\tap_payment\Controller\ReturnController::handle'
+    _title: 'Payment'
+  methods: [GET, POST]
+  requirements:
+    # Open by design: a payer returning from Tap may have no session, and the
+    # page reveals nothing — it re-reads the charge from Tap and redirects. The
+    # UUID in the path is unguessable, and the route is flood limited.
+    _access: 'TRUE'
+    uuid: '[0-9a-f-]{36}'
+  options:
+    no_cache: TRUE

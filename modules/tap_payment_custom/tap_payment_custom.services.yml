@@ -1,0 +1,4 @@
+services:
+  Drupal\tap_payment_custom\FormSettings:
+    arguments: ['@config.factory']
+  tap_payment_custom.settings: '@Drupal\tap_payment_custom\FormSettings'

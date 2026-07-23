@@ -1,0 +1,124 @@
+{
+  "id": "chg_TS05A4120230736x9K22710693",
+  "object": "charge",
+  "live_mode": false,
+  "customer_initiated": true,
+  "api_version": "V2",
+  "method": "POST",
+  "status": "CAPTURED",
+  "amount": 1.0,
+  "currency": "SAR",
+  "threeDSecure": true,
+  "card_threeDSecure": false,
+  "save_card": true,
+  "merchant_id": "",
+  "product": "",
+  "description": "",
+  "metadata": {
+    "udf1": "test_data_1",
+    "udf2": "test_data_2",
+    "udf3": "test_data_3"
+  },
+  "transaction": {
+    "timezone": "UTC+03:00",
+    "created": "1698392202943",
+    "expiry": {
+      "period": 30,
+      "type": "MINUTE"
+    },
+    "asynchronous": false,
+    "amount": 1.0,
+    "currency": "SAR"
+  },
+  "reference": {
+    "track": "tck_TS04A4320230736To522710661",
+    "payment": "4327230736106619650",
+    "gateway": "mada_pg70983e7a-a686-40ba-83e2-c5e9f4074fe5",
+    "acquirer": "230004002581",
+    "transaction": "txn_0001",
+    "order": "ord_0001"
+  },
+  "response": {
+    "code": "000",
+    "message": "Captured"
+  },
+  "security": {
+    "threeDSecure": {
+      "status": "Y"
+    }
+  },
+  "gateway": {
+    "response": {
+      "code": "000",
+      "message": "Approved"
+    }
+  },
+  "card": {
+    "id": "card_IIGi4523416sFHe27jJ9E589",
+    "object": "card",
+    "first_six": "446404",
+    "first_eight": "44640400",
+    "scheme": "MADA",
+    "brand": "VISA",
+    "last_four": "0007"
+  },
+  "receipt": {
+    "id": "204327230736104914",
+    "email": true,
+    "sms": true
+  },
+  "customer": {
+    "id": "cus_TS07A5420232136o2K52709053",
+    "first_name": "Majdi",
+    "middle_name": "Abdullah",
+    "last_name": "Al Khowaiter",
+    "email": "m.ghgjhgj@tap.company",
+    "phone": {
+      "country_code": "966",
+      "number": "51234567"
+    }
+  },
+  "merchant": {
+    "country": "SA",
+    "currency": "SAR",
+    "id": "25145693"
+  },
+  "source": {
+    "object": "token",
+    "type": "CARD_NOT_PRESENT",
+    "payment_type": "DEBIT",
+    "payment_method": "MADA",
+    "channel": "INTERNET",
+    "id": "tok_nLKq4223436fVYL27Nj9P855"
+  },
+  "redirect": {
+    "status": "PENDING",
+    "url": "http://your_website.com/redirecturl"
+  },
+  "post": {
+    "attempt": 1,
+    "status": "PENDING",
+    "url": "https://webhook.site/25c5e885-216b-4d5f-bcbf-8e5d0d20b76f"
+  },
+  "activities": [
+    {
+      "id": "activity_TS03A4420230736Rb512710536",
+      "object": "activity",
+      "created": 1698392202943,
+      "status": "INITIATED",
+      "currency": "SAR",
+      "amount": 1.0,
+      "remarks": "charge - created"
+    },
+    {
+      "id": "activity_TS07A1320230737j1H42710453",
+      "object": "activity",
+      "created": 1698392233453,
+      "status": "CAPTURED",
+      "currency": "SAR",
+      "amount": 1.0,
+      "remarks": "charge - captured"
+    }
+  ],
+  "auto_reversed": false
+}

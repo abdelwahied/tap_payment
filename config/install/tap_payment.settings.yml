@@ -1,0 +1,3 @@
+environment: sandbox
+sandbox_secret_key: ''
+live_secret_key: ''

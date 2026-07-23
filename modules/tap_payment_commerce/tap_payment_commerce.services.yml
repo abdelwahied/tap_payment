@@ -1,0 +1,16 @@
+services:
+  Drupal\tap_payment_commerce\Service\CommercePaymentRecorder:
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.tap_payment'
+  tap_payment_commerce.recorder: '@Drupal\tap_payment_commerce\Service\CommercePaymentRecorder'
+
+  # The webhook is authoritative, and it lands on the core module's endpoint
+  # rather than on a Commerce route. Subscribing to the outcome is therefore
+  # how the order learns it was paid — including when the customer never comes
+  # back to the site at all.
+  Drupal\tap_payment_commerce\EventSubscriber\PaymentOutcomeSubscriber:
+    arguments:
+      - '@tap_payment_commerce.recorder'
+    tags:
+      - { name: event_subscriber }

@@ -1,0 +1,20 @@
+# Dependencies — a contrib module ships source, not vendored libraries.
+/vendor/
+composer.lock
+
+# Test and build artifacts.
+.phpunit.result.cache
+/build/
+/coverage/
+sites/simpletest/
+
+# Editors and IDEs.
+.idea/
+.vscode/
+*.sublime-*
+*.swp
+*~
+
+# OS files.
+.DS_Store
+Thumbs.db

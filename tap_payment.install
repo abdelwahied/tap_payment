@@ -1,0 +1,44 @@
+<?php
+
+/**
+ * @file
+ * Install and requirements hooks for Tap Payment.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Hook\Attribute\LegacyRequirementsHook;
+use Drupal\tap_payment\Service\StatusReport;
+
+/**
+ * Implements hook_requirements().
+ *
+ * Reports which environment charges are created in, whether the configured API
+ * version has an adapter, and how many payments are still waiting for an
+ * outcome. All three are failures a site otherwise finds out about from its
+ * accounts rather than from its status report.
+ *
+ * Runtime only: none of it is a reason to block an installation.
+ *
+ * Kept for Drupal 10.3, which has no OOP hooks. On Drupal 11.3 and later the
+ * attribute below stops this from running and
+ * \Drupal\tap_payment\Hook\TapPaymentRequirements answers instead — so the
+ * check happens exactly once on every supported version.
+ *
+ * @param string $phase
+ *   The phase in which requirements are being checked.
+ *
+ * @return array<string, mixed>
+ *   The requirements.
+ */
+#[LegacyRequirementsHook]
+function tap_payment_requirements(string $phase): array {
+  if ($phase !== 'runtime') {
+    return [];
+  }
+
+  /** @var \Drupal\tap_payment\Service\StatusReport $statusReport */
+  $statusReport = \Drupal::service(StatusReport::class);
+
+  return $statusReport->requirements();
+}

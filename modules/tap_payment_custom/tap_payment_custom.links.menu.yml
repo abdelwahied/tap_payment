@@ -1,0 +1,5 @@
+tap_payment_custom.settings:
+  title: 'Standalone payment form'
+  description: 'Set what the standalone payment form collects.'
+  route_name: tap_payment_custom.settings
+  parent: tap_payment.settings

@@ -1,0 +1,53 @@
+<?php
+
+/**
+ * @file
+ * Wires the Tap payment gateway into Drupal's cron and help systems.
+ *
+ * Everything else the module does lives in services and plugins. What is here
+ * is only what Drupal still asks for procedurally.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
+use Drupal\tap_payment\Service\PaymentReconciler;
+
+/**
+ * Implements hook_cron().
+ *
+ * Queues payments that are still open long after they should have settled. Tap
+ * attempts a webhook three times and then stops, and a payer may never come
+ * back through the browser, so without this a captured payment can sit unseen
+ * indefinitely. Queuing rather than acting keeps the cron run short: each item
+ * is an HTTP round trip.
+ */
+function tap_payment_cron(): void {
+  /** @var \Drupal\tap_payment\Service\PaymentReconciler $reconciler */
+  $reconciler = \Drupal::service(PaymentReconciler::class);
+  $reconciler->queueStale();
+}
+
+/**
+ * Implements hook_help().
+ */
+function tap_payment_help(string $route_name, RouteMatchInterface $route_match): ?array {
+  if ($route_name !== 'help.page.tap_payment') {
+    return NULL;
+  }
+
+  return [
+    '#theme' => 'item_list',
+    '#title' => t('Taking payments through Tap'),
+    '#items' => [
+      t('Configure the environment and the secret key at <a href=":settings">Tap Payment settings</a>.', [
+        ':settings' => Url::fromRoute('tap_payment.settings')->toString(),
+      ]),
+      t('Review every attempt at <a href=":transactions">Tap payment transactions</a>.', [
+        ':transactions' => Url::fromRoute('tap_payment.transactions')->toString(),
+      ]),
+      t('There is nothing else to give Tap: the webhook and return URLs are this site&#039;s own routes, and they are sent with every charge.'),
+    ],
+  ];
+}

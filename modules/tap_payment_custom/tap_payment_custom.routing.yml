@@ -1,0 +1,27 @@
+tap_payment_custom.settings:
+  path: '/admin/config/services/tap-payment/form'
+  defaults:
+    _form: '\Drupal\tap_payment_custom\Form\SettingsForm'
+    _title: 'Standalone payment form'
+  requirements:
+    _permission: 'administer tap payment form'
+
+tap_payment_custom.pay:
+  path: '/tap-payment/pay'
+  defaults:
+    _form: '\Drupal\tap_payment_custom\Form\PaymentForm'
+    _title: 'Payment'
+  requirements:
+    _permission: 'make tap payments'
+  options:
+    no_cache: TRUE
+
+tap_payment_custom.complete:
+  path: '/tap-payment/complete'
+  defaults:
+    _controller: '\Drupal\tap_payment_custom\Controller\CompletionController::show'
+    _title: 'Payment'
+  requirements:
+    _permission: 'make tap payments'
+  options:
+    no_cache: TRUE

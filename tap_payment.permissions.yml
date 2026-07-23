@@ -1,0 +1,9 @@
+administer tap payment:
+  title: 'Administer Tap Payment'
+  description: 'Configure the API credentials and the environment payments are created in.'
+  restrict access: true
+
+view tap payment transactions:
+  title: 'View Tap payment transactions'
+  description: 'Read the payment ledger: amounts, states and Tap charge identifiers.'
+  restrict access: true

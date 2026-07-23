@@ -1,0 +1,8 @@
+make tap payments:
+  title: 'Make a payment through Tap'
+  description: 'Use the standalone payment form.'
+
+administer tap payment form:
+  title: 'Administer the standalone Tap payment form'
+  description: 'Set the amount, currency and description the form collects.'
+  restrict access: true

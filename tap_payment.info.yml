@@ -1,0 +1,7 @@
+name: 'Tap Payment'
+type: module
+description: 'Accepts payments through Tap Payments'' hosted checkout — a payment gateway plugin API any module can drive, with webhook-authoritative confirmation and no card data ever touching the site.'
+package: 'Payment'
+core_version_requirement: ^10.3 || ^11
+php: '8.3'
+configure: tap_payment.settings

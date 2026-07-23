@@ -1,0 +1,223 @@
+# Reusable CI for this standalone Drupal module.
+#
+# It builds a throwaway Drupal site at the requested core version, places the
+# module (which is this repository's root) into web/modules/custom, and runs
+# composer validate, PHPCS (Drupal and DrupalPractice separately) and PHPUnit.
+# Every step fails the job on a non-zero exit — nothing is soft-failed.
+name: Tests (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      module:
+        description: 'The module machine name (this repository).'
+        required: true
+        type: string
+      php-version:
+        required: true
+        type: string
+      drupal-constraint:
+        description: 'Composer constraint for drupal/recommended-project, e.g. ~10.3.0 or ^11.'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: PHP ${{ inputs.php-version }} · Drupal ${{ inputs.drupal-constraint }}
+    steps:
+      - name: Check out the module
+        uses: actions/checkout@v4
+        with:
+          path: module_src
+
+      - name: Set up PHP ${{ inputs.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php-version }}
+          extensions: mbstring, gd, pdo_sqlite, sqlite3, sockets, curl, dom, xml, tokenizer, json
+          coverage: none
+          tools: composer:v2
+
+      - name: composer validate
+        working-directory: module_src
+        run: composer validate --strict --no-check-all
+
+      - name: Build the Drupal site
+        run: |
+          set -euo pipefail
+          composer create-project "drupal/recommended-project:${{ inputs.drupal-constraint }}" drupal \
+            --no-interaction --no-install
+          cd drupal
+          composer config --no-plugins allow-plugins.composer/installers true
+          composer config --no-plugins allow-plugins.drupal/core-composer-scaffold true
+          composer config --no-plugins allow-plugins.drupal/core-project-message true
+          composer config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer config --no-plugins allow-plugins.phpstan/extension-installer true
+          composer config --no-plugins allow-plugins.php-http/discovery true
+          composer config --no-plugins allow-plugins.tbachert/spi true
+          # Keep the default "stable" minimum-stability from recommended-project:
+          # forcing "dev" drags composer/composer dev-main into resolution, which
+          # conflicts with the runner's composer on the Drupal 10.3 line.
+          #
+          # drupal/core-dev on the 10.3 line pins justinrainbow/json-schema ^5.2,
+          # while the composer/composer it transitively requires now needs
+          # json-schema ^6 — an unsolvable pair, and the only composer/composer
+          # that uses json-schema 5 (the 2.7 series) is blocked by advisories.
+          # composer/composer is exercised only by core BuildTests, which this
+          # module does not run, so on 10.3 we replace it out to break the knot.
+          if [[ "${{ inputs.drupal-constraint }}" == '~10.3'* ]]; then
+            jq '.replace = ((.replace // {}) + {"composer/composer": "*"})' composer.json > composer.tmp.json
+            mv composer.tmp.json composer.json
+          fi
+          composer require --dev --no-update \
+            "drupal/core-dev:${{ inputs.drupal-constraint }}" "drupal/coder:^8.3" "drush/drush:^12 || ^13"
+          composer update --no-interaction --prefer-dist --no-progress
+
+      - name: Install contrib dependencies (tap_payment only)
+        if: inputs.module == 'tap_payment'
+        working-directory: drupal
+        run: composer require --no-interaction --prefer-dist --no-progress "drupal/commerce:^3" "drupal/webform:^6.3"
+
+      - name: Place the module under test
+        run: |
+          set -euo pipefail
+          mkdir -p "drupal/web/modules/custom/${{ inputs.module }}"
+          rsync -a --exclude='.git' --exclude='.github' module_src/ "drupal/web/modules/custom/${{ inputs.module }}/"
+          # domain_availability depends on saudi_id_validator; fetch the sibling
+          # from its published repository (public clone, no auth needed).
+          if [ "${{ inputs.module }}" = "domain_availability" ]; then
+            git clone --depth 1 https://github.com/abdelwahied/saudi_id_validator.git \
+              drupal/web/modules/custom/saudi_id_validator
+          fi
+
+      - name: PHPCS (Drupal)
+        working-directory: drupal
+        run: vendor/bin/phpcs --standard=Drupal --extensions=php,module,inc,install,yml,js "web/modules/custom/${{ inputs.module }}"
+
+      - name: PHPCS (DrupalPractice)
+        working-directory: drupal
+        run: vendor/bin/phpcs --standard=DrupalPractice --extensions=php,module,inc,install,yml,js "web/modules/custom/${{ inputs.module }}"
+
+      - name: Install the site (sqlite)
+        working-directory: drupal
+        run: |
+          set -euo pipefail
+          # The files directory and a writable sites/default must exist before
+          # drush can write settings.php and the sqlite database into them.
+          mkdir -p web/sites/default/files
+          chmod -R 0777 web/sites/default
+          php -d memory_limit=-1 vendor/bin/drush site:install standard \
+            --db-url=sqlite://localhost/sites/default/files/.ht.site.sqlite \
+            --site-name=CI --account-name=admin --account-pass=admin -y
+          chmod -R 0777 web/sites/default/files
+
+      - name: Verify content-entity runtime compatibility
+        working-directory: drupal
+        run: |
+          set -euo pipefail
+          # Proves, on every core version (and especially Drupal 10.3), that the
+          # module's content entities are discovered, their schema installs, and
+          # full CRUD works — independent of the PHPUnit suite. This is what
+          # confirms the annotation+attribute dual metadata genuinely restores
+          # Drupal 10.3 entity support.
+          php -d memory_limit=-1 vendor/bin/drush en "${{ inputs.module }}" -y
+          cat > /tmp/verify_entities.php <<'PHP'
+          <?php
+          $module = getenv('VERIFY_MODULE');
+          $etm = \Drupal::entityTypeManager();
+          $efm = \Drupal::service('entity_field.manager');
+          $schema = \Drupal::database()->schema();
+          $checked = 0;
+          foreach ($etm->getDefinitions() as $id => $def) {
+            if ($def->getProvider() !== $module) { continue; }
+            if (!$def instanceof \Drupal\Core\Entity\ContentEntityTypeInterface) { continue; }
+            $storage = $etm->getStorage($id);
+            $table = $def->getBaseTable();
+            if (!$schema->tableExists($table)) { throw new \RuntimeException("Base table $table missing for $id"); }
+            $values = [];
+            foreach ($efm->getBaseFieldDefinitions($id) as $fname => $fd) {
+              if (!$fd->isRequired() || $fd->isReadOnly()) { continue; }
+              $t = $fd->getType();
+              if (in_array($t, ['string', 'string_long', 'text', 'text_long', 'list_string'], true)) { $values[$fname] = 'ci'; }
+              elseif (in_array($t, ['integer', 'timestamp', 'created', 'changed', 'list_integer'], true)) { $values[$fname] = 1; }
+              elseif ($t === 'boolean') { $values[$fname] = 0; }
+              elseif ($t === 'entity_reference') { $values[$fname] = 1; }
+            }
+            $e = $storage->create($values);
+            $e->save();
+            $eid = $e->id();
+            $storage->resetCache([$eid]);
+            $loaded = $storage->load($eid);
+            if (!$loaded) { throw new \RuntimeException("Reload failed for $id ($eid)"); }
+            $loaded->save();
+            $loaded->delete();
+            if ($storage->load($eid)) { throw new \RuntimeException("Delete failed for $id ($eid)"); }
+            print "  content-entity CRUD OK: $id (base table $table)\n";
+            $checked++;
+          }
+          print $checked === 0 ? "  no content entities provided by $module\n" : "  verified $checked content entity type(s)\n";
+          PHP
+          VERIFY_MODULE="${{ inputs.module }}" php -d memory_limit=-1 vendor/bin/drush php:script /tmp/verify_entities.php
+
+      - name: Start the test web server
+        working-directory: drupal
+        run: |
+          set -euo pipefail
+          mkdir -p web/sites/simpletest/browser_output
+          chmod -R 0777 web/sites/simpletest
+          # A single-process server, deliberately: functional tests run one at a
+          # time (each in an isolated process) so no concurrency is needed, and
+          # multiple workers each hold their own cache, which breaks Drupal's
+          # per-test-site isolation and leaks state between tests.
+          #
+          # The router path must be absolute: with -t web the server resolves a
+          # relative router against the docroot, so "web/.ht.router.php" is not
+          # found and every request would return a 500.
+          nohup php -S 127.0.0.1:8080 -t web "$(pwd)/web/.ht.router.php" > /tmp/php-server.log 2>&1 &
+          for i in $(seq 1 15); do
+            if curl -sSf http://127.0.0.1:8080/core/misc/druplicon.png > /dev/null 2>&1; then break; fi
+            sleep 1
+          done
+
+      - name: PHPUnit
+        working-directory: drupal
+        env:
+          SIMPLETEST_DB: 'sqlite://localhost/sites/default/files/.ht.test.sqlite'
+          SIMPLETEST_BASE_URL: 'http://127.0.0.1:8080'
+          BROWSERTEST_OUTPUT_DIRECTORY: '${{ github.workspace }}/drupal/web/sites/simpletest/browser_output'
+          # Third-party modules emit deprecations on the newest core; the module's
+          # own code emits none. Do not fail an otherwise-green run on them.
+          SYMFONY_DEPRECATIONS_HELPER: disabled
+        run: |
+          set -euo pipefail
+          # The full suite runs on every core version. Each test carries both the
+          # PHPUnit attribute (#[DataProvider], #[Group], #[CoversClass], …) and
+          # the mirror annotation (@dataProvider, @group, @covers, …): PHPUnit 9.6
+          # on Drupal 10.3 reads the annotation, PHPUnit 11 on Drupal 11 reads the
+          # attribute and — because the attribute is present — does not deprecate
+          # the annotation. So the identical suite is exercised on both, with no
+          # deprecation on either. See tests/ dual-metadata and CONTRIBUTING.md.
+          #
+          # Absolute paths: tests marked #[RunTestsInSeparateProcesses] fork a
+          # subprocess that re-reads the configuration, and on the older PHPUnit
+          # shipped with Drupal 10.3 a relative --configuration path is not found
+          # from the subprocess. $(pwd) is the drupal/ site root here.
+          php -d memory_limit=-1 vendor/bin/phpunit \
+            -c "$(pwd)/web/core/phpunit.xml.dist" \
+            "$(pwd)/web/modules/custom/${{ inputs.module }}/tests"
+
+      - name: Diagnostics on failure
+        if: failure()
+        working-directory: drupal
+        run: |
+          echo "=== php server log ==="
+          tail -40 /tmp/php-server.log 2>/dev/null || true
+          echo "=== last functional error pages (text) ==="
+          for f in $(ls -t web/sites/simpletest/browser_output/*.html 2>/dev/null | head -2); do
+            echo "----- $f -----"
+            sed -e 's/<[^>]*>/ /g' "$f" | tr -s ' \n' ' \n' | grep -iE "error|exception|not exist|SQLSTATE|does not|fatal|call to|undefined" | head -25
+          done

@@ -1,0 +1,9 @@
+name: 'Tap Payment: standalone'
+type: module
+description: 'A ready-made payment form and completion page built entirely on the public Tap Payment API — no Commerce, no Webform, no other dependency.'
+package: 'Payment'
+core_version_requirement: ^10.3 || ^11
+php: '8.3'
+configure: tap_payment_custom.settings
+dependencies:
+  - tap_payment:tap_payment

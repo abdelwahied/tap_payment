@@ -1,0 +1,9 @@
+services:
+  Drupal\tap_payment_test\StubApiClient:
+    arguments: ['@state']
+  tap_payment_test.api_client: '@Drupal\tap_payment_test\StubApiClient'
+
+  Drupal\tap_payment_test\EventRecorder:
+    arguments: ['@state']
+    tags:
+      - { name: event_subscriber }

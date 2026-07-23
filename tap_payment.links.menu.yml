@@ -1,0 +1,11 @@
+tap_payment.settings:
+  title: 'Tap Payment'
+  description: 'Configure the Tap Payments credentials and environment.'
+  route_name: tap_payment.settings
+  parent: system.admin_config_services
+
+tap_payment.transactions:
+  title: 'Tap payment transactions'
+  description: 'Review every payment this site has attempted through Tap.'
+  route_name: tap_payment.transactions
+  parent: tap_payment.settings

@@ -1,0 +1,28 @@
+webform.handler.tap_payment:
+  type: mapping
+  label: 'Tap payment handler settings'
+  mapping:
+    amount_element:
+      type: string
+      label: 'Amount element key'
+    fixed_amount:
+      type: string
+      label: 'Fixed amount'
+    currency:
+      type: string
+      label: 'Currency'
+    email_element:
+      type: string
+      label: 'Email element key'
+    first_name_element:
+      type: string
+      label: 'First name element key'
+    last_name_element:
+      type: string
+      label: 'Last name element key'
+    description:
+      type: string
+      label: 'Description'
+    source_id:
+      type: string
+      label: 'Payment source'

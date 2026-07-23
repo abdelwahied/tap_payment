@@ -1,0 +1,53 @@
+{
+    "name": "abdelwahied/tap_payment",
+    "description": "Tap Payments gateway for Drupal 10/11 — a payment gateway plugin API any module can drive, with a hosted checkout, signed-webhook confirmation and no card data on the site.",
+    "type": "drupal-module",
+    "homepage": "https://github.com/abdelwahied/tap_payment",
+    "license": "GPL-2.0-or-later",
+    "keywords": [
+        "drupal",
+        "payment",
+        "tap",
+        "tap-payments",
+        "gateway",
+        "checkout",
+        "webhook",
+        "commerce"
+    ],
+    "authors": [
+        {
+            "name": "Abdelwahied",
+            "email": "abdelwahied.fx@gmail.com",
+            "role": "Maintainer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/abdelwahied/tap_payment/issues",
+        "source": "https://github.com/abdelwahied/tap_payment",
+        "docs": "https://github.com/abdelwahied/tap_payment/blob/main/API.md",
+        "email": "abdelwahied.fx@gmail.com"
+    },
+    "require": {
+        "php": ">=8.3",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "drupal/core": "^10.3 || ^11"
+    },
+    "require-dev": {
+        "drupal/core-dev": "^10.3 || ^11"
+    },
+    "suggest": {
+        "drupal/commerce": "Enables the tap_payment_commerce submodule, an off-site payment gateway for Drupal Commerce.",
+        "drupal/webform": "Enables the tap_payment_webform submodule, which takes a payment on webform submission."
+    },
+    "autoload": {
+        "psr-4": {
+            "Drupal\\tap_payment\\": "src/"
+        }
+    },
+    "extra": {
+        "drupal": {
+            "version": "1.0.0"
+        }
+    }
+}
