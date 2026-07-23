@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a defect in the module.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report. For a **security** vulnerability,
+        do NOT open an issue — follow SECURITY.md instead.
+  - type: input
+    id: module_version
+    attributes:
+      label: Module version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: drupal
+    attributes:
+      label: Drupal core version
+      options: ["10.3.x", "10.4.x", "10.5.x", "10.6.x", "11.x"]
+    validations:
+      required: true
+  - type: input
+    id: php
+    attributes:
+      label: PHP version
+      placeholder: "8.3"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Steps to reproduce, what you expected, and what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or stack trace (optional)
+      render: shell
