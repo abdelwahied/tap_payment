@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or idea
+    url: https://github.com/abdelwahied/tap_payment/discussions
+    about: Ask a question or share an idea in Discussions.
+  - name: Security vulnerability (private)
+    url: https://github.com/abdelwahied/tap_payment/security/policy
+    about: Report security issues privately per SECURITY.md — never in a public issue.
