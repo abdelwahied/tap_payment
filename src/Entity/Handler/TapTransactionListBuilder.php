@@ -42,8 +42,8 @@ final class TapTransactionListBuilder extends EntityListBuilder {
   public function __construct(
     EntityTypeInterface $entity_type,
     EntityStorageInterface $storage,
-    private readonly DateFormatterInterface $dateFormatter,
-    private readonly LoggerChannelInterface $logger,
+    protected DateFormatterInterface $dateFormatter,
+    protected LoggerChannelInterface $logger,
   ) {
     parent::__construct($entity_type, $storage);
   }

@@ -70,6 +70,8 @@ interface TapPaymentInterface {
    *
    * @throws \Drupal\tap_payment\Exception\ApiException
    *   When Tap could not be reached.
+   * @throws \Drupal\tap_payment\Exception\ConfigurationException
+   *   When the gateway or its credentials are not configured.
    */
   public function verifyPayment(TapTransactionInterface $transaction): TapTransactionInterface;
 
