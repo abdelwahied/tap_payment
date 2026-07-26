@@ -2,3 +2,13 @@ amount: '1.000'
 currency: KWD
 description: ''
 source_id: src_all
+# Throttling and idempotency. A zero means "use the module's own default",
+# which is the tap_payment.pay_* service parameter of the same name — so a site
+# that never touches these keeps whatever the module ships and inherits any
+# later change to it.
+flood_limit: 0
+flood_window: 0
+flood_ip_multiplier: 0
+throttle_by_session: true
+throttle_by_email: true
+idempotency_lifetime: 0

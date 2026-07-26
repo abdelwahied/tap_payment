@@ -64,6 +64,29 @@ parameters:
   tap_payment.return_flood_limit: 50
   tap_payment.return_flood_window: 3600
 
+  # Payment starts tolerated per payer per window, and the window itself. These
+  # are the shipped defaults for any form that takes a payment; a site changes
+  # them on the form's own settings page rather than here, and only overrides
+  # the parameter when it wants a different default across every such form.
+  #
+  # Unlike the two limits above, these are not counted on the client IP alone —
+  # see \Drupal\tap_payment_custom\PaymentThrottle for why an IP-only limit
+  # locks out an office behind one address.
+  tap_payment.pay_flood_limit: 10
+  tap_payment.pay_flood_window: 3600
+
+  # How much looser the per-IP bucket is than the per-payer one. Ten means a
+  # single address may carry ten payers' worth of attempts, which is the
+  # difference between bounding an endpoint and blocking a school.
+  tap_payment.pay_flood_ip_multiplier: 10
+
+  # Seconds a derived idempotency key stays in use. Within it, an identical
+  # submission joins the payment it already started instead of opening another;
+  # after it, the same payer buying the same thing again gets a new charge.
+  # Fifteen minutes is longer than any double-click or browser retry and far
+  # shorter than a deliberate repeat purchase.
+  tap_payment.pay_idempotency_lifetime: 900
+
   # Reconciliation. A payment is chased once it has been quiet for longer than
   # Tap's own maximum transaction expiry (60 minutes), and is left alone once it
   # is older than the window — re-reading every abandoned checkout since launch

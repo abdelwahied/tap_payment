@@ -14,3 +14,23 @@ tap_payment_custom.settings:
     source_id:
       type: string
       label: 'Payment source'
+    flood_limit:
+      # 0 means "use the tap_payment.pay_flood_limit parameter", so a site that
+      # never opens the settings page keeps whatever the module ships.
+      type: integer
+      label: 'Payment starts allowed per payer per window'
+    flood_window:
+      type: integer
+      label: 'Throttling window in seconds'
+    flood_ip_multiplier:
+      type: integer
+      label: 'How much looser the per-IP bucket is than the per-payer one'
+    throttle_by_session:
+      type: boolean
+      label: 'Count attempts per session or account'
+    throttle_by_email:
+      type: boolean
+      label: 'Count attempts per payer email'
+    idempotency_lifetime:
+      type: integer
+      label: 'Seconds an identical submission rejoins the payment it started'

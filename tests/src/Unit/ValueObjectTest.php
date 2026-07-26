@@ -183,6 +183,11 @@ final class ValueObjectTest extends UnitTestCase {
       'order reference over 100 (error 1122)' => [['orderReference' => str_repeat('a', 101)]],
       'metadata key over 250 (error 1127)' => [['metadata' => [str_repeat('k', 251) => 'v']]],
       'metadata value over 1000 (error 1128)' => [['metadata' => ['k' => str_repeat('v', 1001)]]],
+      // PHP casts a decimal-integer string key to an int on the way in, so a
+      // caller who wrote ['12' => 'x'] — exactly what the signature asks for —
+      // hands this constructor an integer key. Tap's metadata is a string map.
+      'metadata key that PHP cast to an integer' => [['metadata' => ['12' => 'x']]],
+      'metadata value that is not a string' => [['metadata' => ['k' => 42]]],
       'unsupported hosted page language' => [['languageCode' => 'fr']],
       'empty return url' => [['returnUrl' => '  ']],
       'empty source' => [['sourceId' => '']],

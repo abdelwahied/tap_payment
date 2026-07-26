@@ -1,4 +1,27 @@
 services:
   Drupal\tap_payment_custom\FormSettings:
-    arguments: ['@config.factory']
+    arguments:
+      - '@config.factory'
+      # The shipped defaults. Configuration overrides them per site; a zero
+      # there means "keep whatever the module ships", so a site inherits a
+      # later change to a default instead of freezing today's value into its
+      # own configuration.
+      - '%tap_payment.pay_flood_limit%'
+      - '%tap_payment.pay_flood_window%'
+      - '%tap_payment.pay_flood_ip_multiplier%'
+      - '%tap_payment.pay_idempotency_lifetime%'
   tap_payment_custom.settings: '@Drupal\tap_payment_custom\FormSettings'
+
+  Drupal\tap_payment_custom\PaymentThrottle:
+    arguments:
+      - '@flood'
+      - '@request_stack'
+      - '@current_user'
+      - '@Drupal\tap_payment_custom\FormSettings'
+  tap_payment_custom.throttle: '@Drupal\tap_payment_custom\PaymentThrottle'
+
+  Drupal\tap_payment_custom\IdempotencyKeyFactory:
+    arguments:
+      - '@datetime.time'
+      - '@uuid'
+  tap_payment_custom.idempotency_keys: '@Drupal\tap_payment_custom\IdempotencyKeyFactory'

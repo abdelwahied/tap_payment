@@ -44,7 +44,7 @@ final class PaymentFormBlock extends BlockBase implements ContainerFactoryPlugin
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    private readonly FormBuilderInterface $formBuilder,
+    protected readonly FormBuilderInterface $formBuilder,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }

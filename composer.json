@@ -2,7 +2,6 @@
     "name": "abdelwahied/tap_payment",
     "description": "Tap Payments gateway for Drupal 10/11 — a payment gateway plugin API any module can drive, with a hosted checkout, signed-webhook confirmation and no card data on the site.",
     "type": "drupal-module",
-    "homepage": "https://github.com/abdelwahied/tap_payment",
     "license": "GPL-2.0-or-later",
     "keywords": [
         "drupal",
@@ -47,7 +46,7 @@
     },
     "extra": {
         "drupal": {
-            "version": "1.0.0"
+            "version": "1.1.0"
         }
     }
 }

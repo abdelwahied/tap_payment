@@ -1,0 +1,88 @@
+<?php
+
+/**
+ * @file
+ * Update hooks for the standalone Tap payment form.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Config\InstallStorage;
+
+/**
+ * Adds the throttling and idempotency settings to sites that predate them.
+ *
+ * Existing values are never overwritten, and the form behaves the same either
+ * way: this only removes the config:export difference between a site that
+ * installed the module before these keys existed and one that installed after.
+ */
+function tap_payment_custom_update_10001(): string {
+  // Keep this docblock short. update_get_update_list() flattens the whole
+  // comment into the description an administrator reads in the update UI and
+  // in `drush updatedb:status`, so the reasoning belongs down here.
+  //
+  // A config/install file is read once, when a module is installed. Everything
+  // added to it afterwards reaches new sites and no existing one, so a site
+  // that upgraded ends up exporting different configuration from a site that
+  // installed today — same behaviour, because FormSettings falls back to the
+  // module's own defaults for an absent key, but a different file.
+  $name = 'tap_payment_custom.settings';
+  $directory = \Drupal::service('extension.list.module')->getPath('tap_payment_custom')
+    . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY;
+
+  // The values come from the shipped file rather than from a list written out
+  // here. A list would be a second copy of the defaults, free to drift from the
+  // first the next time one is changed; reading config/install makes an
+  // upgraded site identical to a fresh one by construction.
+  //
+  // Note what that means for the numbers. The shipped value is 0, meaning "use
+  // the module's own default", and 0 is what gets written. Writing the resolved
+  // 10 or 900 instead would freeze today's default into the site's own
+  // configuration and quietly opt it out of every later change to that default,
+  // which is the opposite of what the zero is for.
+  $shipped = (new FileStorage($directory))->read($name);
+
+  if ($shipped === FALSE) {
+    // Nothing to copy from. Not worth failing an update over: the form goes on
+    // working from the defaults in FormSettings either way.
+    return (string) t('The shipped default configuration could not be read; no settings were added.');
+  }
+
+  // getEditable() so that a value overridden in settings.php is not mistaken
+  // for one that is stored. The override stays in force regardless; what this
+  // writes is the stored fallback underneath it.
+  $config = \Drupal::configFactory()->getEditable($name);
+  $stored = $config->getRawData();
+  $added = [];
+
+  // Presence, not truthiness, and array_key_exists() rather than isset(): a key
+  // an administrator set to 0, FALSE or NULL is a decision, and Config::get()
+  // cannot tell that apart from a key that was never set at all. Deciding each
+  // key on its own is also what makes this safe to run twice, and what lets a
+  // run that was interrupted half way be finished off by the next one.
+  //
+  // Iterating every shipped key rather than a hard-coded six is deliberate: the
+  // four that predate this release are always present already and so are always
+  // skipped, which makes the effect exactly "populate the new keys" while
+  // keeping the mechanism correct for whatever is added to the file next.
+  foreach ($shipped as $key => $value) {
+    if (array_key_exists($key, $stored)) {
+      continue;
+    }
+
+    $config->set($key, $value);
+    $added[] = $key;
+  }
+
+  if ($added === []) {
+    return (string) t('The payment form settings were already complete; nothing was changed.');
+  }
+
+  $config->save();
+
+  return (string) t('Added @count payment form setting(s) at their shipped defaults: @keys. Existing values were left alone.', [
+    '@count' => count($added),
+    '@keys' => implode(', ', $added),
+  ]);
+}
