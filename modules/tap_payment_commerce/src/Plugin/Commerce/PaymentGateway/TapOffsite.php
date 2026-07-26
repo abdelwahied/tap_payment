@@ -52,12 +52,12 @@ final class TapOffsite extends OffsitePaymentGatewayBase {
   /**
    * Records the payment onto the order.
    */
-  private CommercePaymentRecorder $recorder;
+  protected CommercePaymentRecorder $recorder;
 
   /**
    * The Tap payment service.
    */
-  private TapPaymentInterface $payments;
+  protected TapPaymentInterface $payments;
 
   /**
    * {@inheritdoc}

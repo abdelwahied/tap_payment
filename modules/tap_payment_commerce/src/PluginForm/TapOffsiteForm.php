@@ -50,7 +50,7 @@ final class TapOffsiteForm extends PaymentOffsiteForm implements ContainerInject
    * @param \Drupal\tap_payment\TapPaymentInterface $payments
    *   The one service this form needs.
    */
-  public function __construct(private readonly TapPaymentInterface $payments) {}
+  public function __construct(protected readonly TapPaymentInterface $payments) {}
 
   /**
    * {@inheritdoc}

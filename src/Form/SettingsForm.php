@@ -8,7 +8,9 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 use Drupal\tap_payment\Enum\Environment;
 use Drupal\tap_payment\Service\TapPaymentSettings;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -39,6 +41,26 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   \Drupal\tap_payment\Service\TapPaymentSettings.
  */
 final class SettingsForm extends ConfigFormBase {
+
+  /**
+   * Where a merchant without an account signs up.
+   */
+  private const URL_SIGNUP = 'https://register.tap.company/';
+
+  /**
+   * The Tap dashboard, where the keys below are issued.
+   */
+  private const URL_DASHBOARD = 'https://dashboard.tap.company/';
+
+  /**
+   * Tap's developer documentation.
+   */
+  private const URL_DOCS = 'https://developers.tap.company/';
+
+  /**
+   * The page describing how a webhook payload is signed.
+   */
+  private const URL_WEBHOOK_DOCS = 'https://developers.tap.company/docs/webhook';
 
   /**
    * Constructs a SettingsForm.
@@ -87,6 +109,8 @@ final class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
+    $form['help'] = $this->helpSection();
+
     $form['environment'] = [
       '#type' => 'radios',
       '#title' => $this->t('Environment'),
@@ -117,6 +141,107 @@ final class SettingsForm extends ConfigFormBase {
     ];
 
     return parent::buildForm($form, $form_state);
+  }
+
+  /**
+   * Everything a first-time merchant needs before the fields below make sense.
+   *
+   * Written for the administrator who has just installed the module and does
+   * not yet know where Tap keeps its credentials — and, as much, for the one
+   * who goes looking for a public key or a webhook secret because some other
+   * gateway wanted them. Saying plainly that this module needs neither is worth
+   * more than a field that quietly stores a credential nothing ever sends.
+   *
+   * @return array<string, mixed>
+   *   The render array for the help section.
+   */
+  private function helpSection(): array {
+    $help = [
+      '#type' => 'details',
+      '#title' => $this->t('Getting started with Tap'),
+      '#open' => !$this->settings->isConfigured(),
+      '#weight' => -50,
+    ];
+
+    $help['intro'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'p',
+      '#value' => $this->t('Tap issues one credential this module needs: a secret key. Everything else on this page follows from it.'),
+    ];
+
+    $help['no_account'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['tap-payment-signup']],
+      'text' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Do not have a Tap account yet? Registration is free, and a sandbox key is issued immediately — you can finish this page and take a test payment before any business verification completes.'),
+      ],
+      'button' => $this->externalLink(
+        $this->t('Create a Tap account'),
+        self::URL_SIGNUP,
+        ['button', 'button--primary'],
+      ),
+    ];
+
+    $help['where'] = [
+      '#theme' => 'item_list',
+      '#title' => $this->t('Where each credential lives'),
+      '#items' => [
+        $this->t('<strong>Secret API key</strong> — in the Tap dashboard under <em>Developers → API Credentials</em>. Sandbox keys begin with %sandbox and live keys with %live; paste each into the matching field below. This is the only credential the module sends.', [
+          '%sandbox' => Environment::Sandbox->keyPrefix(),
+          '%live' => Environment::Production->keyPrefix(),
+        ]),
+        $this->t('<strong>Public API key</strong> — issued on the same page, and <em>not needed here</em>. It exists for Tap’s browser SDKs, which collect card details in the payer’s browser. This module never touches card data: the payer enters it on Tap’s own hosted page. There is deliberately no field for it, because storing a credential nothing sends is a liability with no benefit.'),
+        $this->t('<strong>Webhook secret</strong> — Tap does not issue one. A webhook is signed with the same account secret key you entered above, so there is nothing extra to configure, and nothing to register in the dashboard either: the module sends its own webhook address with every charge it creates.'),
+      ],
+    ];
+
+    $help['webhook_url'] = [
+      '#type' => 'item',
+      '#title' => $this->t('This site’s webhook address'),
+      '#markup' => '<code>' . Url::fromRoute('tap_payment.webhook', [], ['absolute' => TRUE])->toString() . '</code>',
+      '#description' => $this->t('Shown for reference — you do not have to register it anywhere. The module sends this address as the charge’s own <code>post.url</code>, so Tap confirms a payment here even when the payer closes the browser before returning. Useful if you need to allow the address through a firewall, or to confirm where Tap is posting.'),
+    ];
+
+    $help['links'] = [
+      '#theme' => 'item_list',
+      '#title' => $this->t('Useful links'),
+      '#items' => [
+        $this->externalLink($this->t('Tap dashboard'), self::URL_DASHBOARD),
+        $this->externalLink($this->t('Tap developer documentation'), self::URL_DOCS),
+        $this->externalLink($this->t('How Tap signs a webhook'), self::URL_WEBHOOK_DOCS),
+      ],
+    ];
+
+    return $help;
+  }
+
+  /**
+   * A link that opens off this site, safely.
+   *
+   * `rel="noopener noreferrer"` is not decoration: without it the page opened
+   * in the new tab can reach back through `window.opener` and navigate this
+   * administration page somewhere else.
+   *
+   * @param \Drupal\Core\StringTranslation\TranslatableMarkup $text
+   *   The link text.
+   * @param string $url
+   *   The absolute external URL.
+   * @param array<int, string> $classes
+   *   Extra classes, for a link that should read as a button.
+   *
+   * @return array<string, mixed>
+   *   The renderable link.
+   */
+  private function externalLink(TranslatableMarkup $text, string $url, array $classes = []): array {
+    return Link::fromTextAndUrl($text, Url::fromUri($url, [
+      'attributes' => [
+        'target' => '_blank',
+        'rel' => 'noopener noreferrer',
+        'class' => $classes,
+      ],
+    ]))->toRenderable();
   }
 
   /**

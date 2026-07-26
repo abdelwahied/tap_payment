@@ -50,12 +50,12 @@ final class TapPaymentWebformHandler extends WebformHandlerBase {
   /**
    * The Tap payment service.
    */
-  private TapPaymentInterface $payments;
+  protected TapPaymentInterface $payments;
 
   /**
    * Where the payer should be sent, once a charge has been created.
    */
-  private ?string $redirectUrl = NULL;
+  protected ?string $redirectUrl = NULL;
 
   /**
    * {@inheritdoc}

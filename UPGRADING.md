@@ -44,6 +44,37 @@ No manual steps are ever required for a patch or minor release. Secret keys,
 stored in the `tap_payment.settings` configuration object (or overridden in
 `settings.php`), are preserved across updates.
 
+## Version 1.1.0
+
+**No manual steps.** Update the code, run `drush updatedb`, rebuild caches. The
+public API is unchanged — every class touched in this release is `@internal` —
+and existing configuration, payment links, Webform and Commerce integrations and
+webhook processing all continue to work untouched.
+
+`tap_payment_custom_update_10001()` runs during `drush updatedb`. It adds the
+release's six new settings keys to `tap_payment_custom.settings` so that a site
+upgrading from 1.0.x exports the same configuration a fresh install produces. It
+writes a key only when that key is absent, so nothing you have chosen is
+overwritten — including a deliberate `0` or `false` — and it is safe to run
+again.
+
+Two things behave differently afterwards, both on the standalone payment form in
+`tap_payment_custom` and neither requiring action:
+
+- The form is throttled: 10 payment starts per payer per hour by default. If
+  your traffic needs more, raise **Payment starts per payer** at
+  *Configuration → Web services → Tap payments → Standalone form*.
+- A repeat submission within 15 minutes rejoins the payment it already started
+  instead of opening a second charge.
+
+Sites that do not enable `tap_payment_custom` are unaffected by both.
+
+## Version 1.0.1
+
+**No upgrade steps are required.** A quality-only patch: serialization safety on
+injected services and a corrected `@throws` annotation. No functional or public
+API changes.
+
 ## Version 1.0.0
 
 This is the first stable release. **No upgrade steps are required** — there is

@@ -62,7 +62,9 @@ final class PaymentRequest {
    * @param string|null $orderReference
    *   The caller's order reference, at most 100 characters.
    * @param array<string, string> $metadata
-   *   Key/value pairs echoed back on every Tap response.
+   *   Key/value pairs echoed back on every Tap response. Documented as strings
+   *   to strings, and checked as such at run time: this is a public constructor
+   *   any module may call, and PHP enforces nothing a docblock says.
    * @param string|null $languageCode
    *   `en` or `ar`; selects the language of Tap's hosted page.
    * @param bool $threeDSecure
@@ -73,6 +75,8 @@ final class PaymentRequest {
    *   own transactions later.
    * @param string|null $contextId
    *   The owning module's identifier for whatever is being paid for.
+   *
+   * @phpstan-param array<array-key, mixed> $metadata
    *
    * @throws \Drupal\tap_payment\Exception\InvalidPaymentRequestException
    *   When a value exceeds a limit Tap documents, or a URL is empty.
@@ -118,6 +122,11 @@ final class PaymentRequest {
     }
 
     foreach ($metadata as $key => $value) {
+      // Not redundant, and not only a guard against a caller who ignored the
+      // docblock. PHP casts a decimal-integer string key to an int on the way
+      // in, so `['12' => 'x']` arrives here with an *integer* key — from a
+      // caller who did exactly what the signature asked. Tap's metadata is a
+      // string map, so that has to be refused rather than sent as 12.
       if (!is_string($key) || !is_string($value)) {
         throw new InvalidPaymentRequestException('Payment metadata must be a map of strings to strings.');
       }
