@@ -30,10 +30,10 @@
         "php": ">=8.3",
         "ext-json": "*",
         "ext-mbstring": "*",
-        "drupal/core": "^10.3 || ^11"
+        "drupal/core": "^10.3 || ^11 || ^12"
     },
     "require-dev": {
-        "drupal/core-dev": "^10.3 || ^11"
+        "drupal/core-dev": "^10.3 || ^11 || ^12"
     },
     "suggest": {
         "drupal/commerce": "Enables the tap_payment_commerce submodule, an off-site payment gateway for Drupal Commerce.",
@@ -46,7 +46,7 @@
     },
     "extra": {
         "drupal": {
-            "version": "1.1.0"
+            "version": "1.2.0"
         }
     }
 }

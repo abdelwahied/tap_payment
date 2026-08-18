@@ -2,7 +2,7 @@ name: 'Tap Payment: Drupal Commerce'
 type: module
 description: 'Adds Tap Payments to Drupal Commerce as an off-site payment gateway, built on the tap_payment public API.'
 package: 'Payment'
-core_version_requirement: ^10.3 || ^11
+core_version_requirement: ^10.3 || ^11 || ^12
 php: '8.3'
 dependencies:
   - tap_payment:tap_payment
