@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\tap_payment\Service;
 
+use Drupal\Component\Utility\DeprecationHelper;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\tap_payment\Api\Adapter\AdapterRegistry;
 use Drupal\tap_payment\Enum\Environment;
@@ -81,7 +83,7 @@ final class StatusReport {
           'description' => new TranslatableMarkup('@reason No payment can be created until this is fixed.', [
             '@reason' => $e->getMessage(),
           ]),
-          'severity' => REQUIREMENT_WARNING,
+          'severity' => DeprecationHelper::backwardsCompatibleCall(\Drupal::VERSION, '11.2.0', fn() => RequirementSeverity::Warning, fn() => REQUIREMENT_WARNING),
         ],
       ];
     }
@@ -97,7 +99,7 @@ final class StatusReport {
           : new TranslatableMarkup('Charges are created with the test secret key. Every payment will appear to succeed and none will be collected — switch to production before taking real orders.'),
         // Sandbox is not an error: it is the correct state for a site being
         // built. It is only worth flagging so that nobody discovers it later.
-        'severity' => $environment === Environment::Production ? REQUIREMENT_OK : REQUIREMENT_WARNING,
+        'severity' => $environment === Environment::Production ? DeprecationHelper::backwardsCompatibleCall(\Drupal::VERSION, '11.2.0', fn() => RequirementSeverity::OK, fn() => REQUIREMENT_OK) : DeprecationHelper::backwardsCompatibleCall(\Drupal::VERSION, '11.2.0', fn() => RequirementSeverity::Warning, fn() => REQUIREMENT_WARNING),
       ],
     ];
   }
@@ -118,7 +120,7 @@ final class StatusReport {
           'title' => new TranslatableMarkup('Tap Payment: API version'),
           'value' => new TranslatableMarkup('Unsupported'),
           'description' => new TranslatableMarkup('@reason', ['@reason' => $e->getMessage()]),
-          'severity' => REQUIREMENT_ERROR,
+          'severity' => DeprecationHelper::backwardsCompatibleCall(\Drupal::VERSION, '11.2.0', fn() => RequirementSeverity::Error, fn() => REQUIREMENT_ERROR),
         ],
       ];
     }
@@ -127,7 +129,7 @@ final class StatusReport {
       'tap_payment_api_version' => [
         'title' => new TranslatableMarkup('Tap Payment: API version'),
         'value' => $version,
-        'severity' => REQUIREMENT_OK,
+        'severity' => DeprecationHelper::backwardsCompatibleCall(\Drupal::VERSION, '11.2.0', fn() => RequirementSeverity::OK, fn() => REQUIREMENT_OK),
       ],
     ];
   }
@@ -155,7 +157,7 @@ final class StatusReport {
         'title' => new TranslatableMarkup('Tap Payment: unresolved payments'),
         'value' => new TranslatableMarkup('@count', ['@count' => $count]),
         'description' => new TranslatableMarkup('Payments Tap has not reported a final outcome for. Cron re-reads them; a number that keeps growing means Tap cannot reach this site&#039;s webhook endpoint.'),
-        'severity' => REQUIREMENT_OK,
+        'severity' => DeprecationHelper::backwardsCompatibleCall(\Drupal::VERSION, '11.2.0', fn() => RequirementSeverity::OK, fn() => REQUIREMENT_OK),
       ],
     ];
   }

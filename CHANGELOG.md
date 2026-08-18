@@ -8,6 +8,30 @@ All notable changes to this module are documented here. The format follows
 
 Nothing yet.
 
+## [1.2.0] — 2026-08-17
+
+### Added
+
+- **Drupal 12 compatibility.** `core_version_requirement` on the module and all
+  three submodules, and the Composer `drupal/core` and `drupal/core-dev`
+  constraints, now accept `^12` alongside the existing `^10.3 || ^11`.
+
+### Changed
+
+- Status-report severities are resolved through
+  `DeprecationHelper::backwardsCompatibleCall()`, so Drupal 11.2 and later
+  receive the `RequirementSeverity` enum while Drupal 10.3 keeps the
+  `REQUIREMENT_*` constants it still defines. The procedural
+  `hook_requirements()` and the object-oriented implementation read the same
+  service, so both paths stay identical.
+
+### Notes
+
+- No behavioural or public API change. Validated on Drupal 11.4.4; Drupal 12
+  and Drupal 10.3 compatibility is established by static analysis, as no
+  runtime for either was available.
+
+
 ## [1.1.0] — 2026-07-26
 
 Hardening for the standalone payment form in `tap_payment_custom`: it is a
